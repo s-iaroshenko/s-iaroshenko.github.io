@@ -5,6 +5,7 @@ var VectorSVG = {
 	radius: 20,
         gridSize: 45,
 	timeout: 300,
+	savedPoints: null,
 	
 	init: function(root) {
 		this.root = root;
@@ -32,7 +33,22 @@ var VectorSVG = {
                 } 
         },
 
-        collapse: function(fallDown) {
+	restore: function() {
+		this.clear();
+		if (this.savedPoints !== null) {
+			for(var i = 0; i < this.savedPoints.length; ++i) {
+				var p = this.savedPoints[i];
+				this.addCircle(p.x * this.gridSize, p.y * this.gridSize, p.color, '');
+			}
+		}
+	},
+
+	startCollapse: function() {
+		this.savedPoints = this.getPoints();
+		this.fallDown();
+	},
+
+	getPoints: function() {
 		var points = [];
 		for(var i = 0; i < this.root.childNodes.length; ++i) {
 			var elem = this.root.childNodes[i];
@@ -42,79 +58,87 @@ var VectorSVG = {
 				points.push( {color: elem._color, x: posX, y: posY, elem: elem} );
 			}
                 }
-		if (points.length > 0) {			
-			if (fallDown) {
-				var maxX = -10000, minX = 10000, maxY = -10000;
-				for(var j = 0; j < points.length; ++j) {
-					if (points[j].x > maxX) maxX = points[j].x;
-					if (points[j].x < minX) minX = points[j].x;
-					if (points[j].y > maxY) maxY = points[j].y;
-				}
-				var hasChanges = false;
-				do {
-					hasChanges = false;
-					for(var a = 0; a < points.length; ++a) {
-						var ap = points[a];
-						var stays = false;
-						for(var b = 0; b < points.length; ++b) {
-							var bp = points[b];
-							if (ap.y === maxY || ((ap.y === bp.y - 1) && (ap.x === bp.x))) {
-								stays = true;
-								break;
-							}
-						}
-						if (!stays) {
-							ap.elem._translateY += this.gridSize;
-							ap.y += 1;
-							this.applyTransforms(ap.elem);
-							hasChanges = true;
-						}
-					}
-					for(var t = minX + 1; t < maxX; ++t) {
-						var hasColumn = false;
-						for(var a = 0; a < points.length; ++a) {
-							var ap = points[a];
-							if (ap.x === t) {
-								hasColumn = true;
-								break;
-							}
-						}
-						if (!hasColumn) {
-							for(var a = 0; a < points.length; ++a) {
-								var ap = points[a];
-								if (ap.x < t) {
-									ap.elem._translateX += this.gridSize;
-									ap.x += 1;
-									this.applyTransforms(ap.elem);
-									hasChanges = true;
-								}
-							}						
-						}
-					}
-				} while (hasChanges);
-				setTimeout(this.collapse.bind(this, false), this.timeout);
-			} else {
-				var pairs = this.getAllColorPairs();
-				var hasChanges = false;
+		return points;
+	},
+
+	fallDown: function() {
+		var points = this.getPoints();
+		if (points.length > 0) {
+			var maxX = -10000, minX = 10000, maxY = -10000;
+			for(var j = 0; j < points.length; ++j) {
+				if (points[j].x > maxX) maxX = points[j].x;
+				if (points[j].x < minX) minX = points[j].x;
+				if (points[j].y > maxY) maxY = points[j].y;
+			}
+			var hasChanges = false;
+			do {
+				hasChanges = false;
 				for(var a = 0; a < points.length; ++a) {
 					var ap = points[a];
-					for(var b = a + 1; b < points.length; ++b) {
+					var stays = false;
+					for(var b = 0; b < points.length; ++b) {
 						var bp = points[b];
-						if (this.areColorsEqual(ap.color, bp.color, pairs) && 
-						   ((((ap.x === bp.x - 1) && (ap.y === bp.y    )) || 
-						     ((ap.x === bp.x + 1) && (ap.y === bp.y    )) || 
-						     ((ap.x === bp.x    ) && (ap.y === bp.y - 1)) || 
-						     ((ap.x === bp.x    ) && (ap.y === bp.y + 1))))) {
-							hasChanges = true;
-							this.root.removeChild(ap.elem);
-							this.root.removeChild(bp.elem);
+						if (ap.y === maxY || ((ap.y === bp.y - 1) && (ap.x === bp.x))) {
+							stays = true;
 							break;
 						}
 					}
-					if (hasChanges) {
-						setTimeout(this.collapse.bind(this, true), this.timeout);
+					if (!stays) {
+						ap.elem._translateY += this.gridSize;
+						ap.y += 1;
+						this.applyTransforms(ap.elem);
+						hasChanges = true;
+					}
+				}
+				for(var t = minX + 1; t < maxX; ++t) {
+					var hasColumn = false;
+					for(var a = 0; a < points.length; ++a) {
+						var ap = points[a];
+						if (ap.x === t) {
+							hasColumn = true;
+							break;
+						}
+					}
+					if (!hasColumn) {
+						for(var a = 0; a < points.length; ++a) {
+							var ap = points[a];
+							if (ap.x < t) {
+								ap.elem._translateX += this.gridSize;
+								ap.x += 1;
+								this.applyTransforms(ap.elem);
+								hasChanges = true;
+							}
+						}						
+					}
+				}
+			} while (hasChanges);
+			setTimeout(this.collapse.bind(this), this.timeout);
+		}
+	},
+
+        collapse: function() {
+		var points = this.getPoints();
+		if (points.length > 0) {
+			var pairs = this.getAllColorPairs();
+			var hasChanges = false;
+			for(var a = 0; a < points.length; ++a) {
+				var ap = points[a];
+				for(var b = a + 1; b < points.length; ++b) {
+					var bp = points[b];
+					if (this.areColorsEqual(ap.color, bp.color, pairs) && 
+					   ((((ap.x === bp.x - 1) && (ap.y === bp.y    )) || 
+					     ((ap.x === bp.x + 1) && (ap.y === bp.y    )) || 
+					     ((ap.x === bp.x    ) && (ap.y === bp.y - 1)) || 
+					     ((ap.x === bp.x    ) && (ap.y === bp.y + 1))))) {
+						hasChanges = true;
+						this.root.removeChild(ap.elem);
+						this.root.removeChild(bp.elem);
 						break;
 					}
+				}
+				if (hasChanges) {
+					setTimeout(this.fallDown.bind(this), this.timeout);
+					break;
 				}
 			}
 		}
