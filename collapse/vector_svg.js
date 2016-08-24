@@ -147,12 +147,12 @@ var VectorSVG = {
         getAllColorPairs: function() {
 		var pairs = [];
 		var equations = document.getElementById("equations");
-		var selects = equations.getElementsByTagName("select");
+		var selects = equations.getElementsByTagName("dt");
 		for(var i = 0; i < selects.length; i += 2) {
-			if (selects[i].value !== selects[i + 1].value &&
-			   selects[i].value !== '' &&
-			   selects[i + 1].value !== '') {
-				pairs.push( { left: selects[i].value, right: selects[i + 1].value });
+			var leftValue = selects[i].getElementsByTagName("span")[0].getAttribute("data-value");
+			var rightValue = selects[i + 1].getElementsByTagName("span")[0].getAttribute("data-value");
+			if (leftValue !== rightValue && leftValue !== '' && rightValue !== '') {
+				pairs.push( { left: leftValue, right: rightValue });
 			}
 		}
 		return pairs;
