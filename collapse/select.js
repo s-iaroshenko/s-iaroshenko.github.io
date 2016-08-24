@@ -22,7 +22,7 @@ function dropdownClicked(selectRoot) {
 function itemSelected(it, selectRoot) {
 	var span = selectRoot.getElementsByClassName("prompt")[0].getElementsByTagName("span")[0];
 	var color = it.getAttribute("data-value");
-	span.style = "background-color:" + color;
+	span.style.backgroundColor = color;
 	span.innerHTML = '&nbsp;';
 	span.setAttribute("data-value", color);
 	getList(selectRoot).classList.add("hidden");
